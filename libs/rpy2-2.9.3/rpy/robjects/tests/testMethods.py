@@ -43,7 +43,7 @@ class Foo(methods.RS4, metaclass = methods.RS4_Type):
         self.__sexp__ = obj.__sexp__
 """
         code = compile(classdef, '<string>', 'exec')
-        ns = dict()
+        ns = {}
         exec(code, ns)
         f = ns['Foo']()
         
@@ -89,7 +89,7 @@ class R_A(methods.RS4, metaclass=methods.RS4_Type):
         self.__sexp__ = obj.__sexp__            
 """
         code = compile(classdef, '<string>', 'exec')
-        ns = dict()
+        ns = {}
         exec(code, ns)
         R_A = ns['R_A']
         class A(R_A):
@@ -124,8 +124,7 @@ class R_A(methods.RS4, metaclass=methods.RS4_Type):
 
 
 def suite():
-    suite = unittest.TestLoader().loadTestsFromTestCase(MethodsTestCase)
-    return suite
+    return unittest.TestLoader().loadTestsFromTestCase(MethodsTestCase)
 
 if __name__ == '__main__':
      unittest.main()

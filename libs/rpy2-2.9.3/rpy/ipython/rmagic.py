@@ -139,12 +139,11 @@ def ri2py_list(obj):
 # The R magic is opiniated about what the R vectors should become.
 @converter.ri2ro.register(ri.SexpVector)
 def _(obj):
-    if 'data.frame' in obj.rclass:
-        # request to turn it to a pandas DataFrame
-        res = converter.ri2py(obj)
-    else:
-        res = ro.sexpvector_to_ro(obj)
-    return res        
+    return (
+        converter.ri2py(obj)
+        if 'data.frame' in obj.rclass
+        else ro.sexpvector_to_ro(obj)
+    )        
 
 
 @magics_class
@@ -180,7 +179,7 @@ class RMagics(Magics):
         self.Rstdout_cache = []
 
         self.converter = converter
-        
+
         self.set_R_plotting_device(device)
 
     def set_R_plotting_device(self, device):
@@ -397,9 +396,12 @@ utils.install_packages('Cairo')
 
         args : argparse bunch (should be whatever the R magic got)."""
         
-        if getattr(args, 'units') is not None:
-            if args.units != "px" and getattr(args, 'res') is None:
-                args.res = 72
+        if (
+            getattr(args, 'units') is not None
+            and args.units != "px"
+            and getattr(args, 'res') is None
+        ):
+            args.res = 72
 
         plot_arg_names = ['width', 'height', 'pointsize', 'bg']
         if self.device == 'png':
@@ -424,8 +426,7 @@ utils.install_packages('Cairo')
                 ro.r.png("%s/Rplots%%03d.png" % tmpd_fix_slashes,
                         **argdict)
             elif self.device == 'svg':
-                self.cairo.CairoSVG("%s/Rplot.svg" % tmpd_fix_slashes,
-                                    **argdict)
+                self.cairo.CairoSVG(f"{tmpd_fix_slashes}/Rplot.svg", **argdict)
 
         elif self.device == 'X11':
             # Open a new X11 device, except if the current one is already an X11
@@ -457,13 +458,13 @@ utils.install_packages('Cairo')
         md = {}
 
         if self.device == 'png':
-            for imgfile in sorted( glob("%s/Rplots*png" % graph_dir) ):
+            for imgfile in sorted(glob(f"{graph_dir}/Rplots*png")):
                 if stat(imgfile).st_size >= 1000:
                     with open(imgfile, 'rb') as fh_img:
                         images.append(fh_img.read())
         else:
             # as onefile=TRUE, there is only one .svg file
-            imgfile = "%s/Rplot.svg" % graph_dir
+            imgfile = f"{graph_dir}/Rplot.svg"
             # Cairo creates an SVG file every time R is called
             # -- empty ones are not published
             if stat(imgfile).st_size >= 1000:
@@ -671,7 +672,7 @@ utils.install_packages('Cairo')
             if not isinstance(converter, Converter):
                 raise ValueError("'%s' must be a %s object (but it is a %s)."
                                  % (args.converter, Converter, type(localconverter)))
-            
+
         if args.input:
             for input in ','.join(args.input).split(','):
                 try:
@@ -746,11 +747,10 @@ utils.install_packages('Cairo')
 
         # We're in line mode and return_output is still True, 
         # so return the converted result
-        if return_output and not args.noreturn:
-            if result is not ri.NULL:
-                with localconverter(converter) as cv:
-                    res = cv.ri2py(result)
-                return res
+        if return_output and not args.noreturn and result is not ri.NULL:
+            with localconverter(converter) as cv:
+                res = cv.ri2py(result)
+            return res
 
 
 __doc__ = __doc__.format(
@@ -769,11 +769,6 @@ def load_ipython_extension(ip):
     # TODO: drop support for ipython < 5.0
     # Initialising rpy2 interferes with readline. Since, at this point, we've
     # probably just loaded rpy2, we reset the delimiters. See issue gh-2759.
-    if hasattr(ip, 'has_readline'):
-        if ip.has_readline:
-            ip.readline.set_completer_delims(ip.readline_delims)
-    else:
-        # ipython >= 5.0.0
-        # not doing anything (for now)
-        pass
+    if hasattr(ip, 'has_readline') and ip.has_readline:
+        ip.readline.set_completer_delims(ip.readline_delims)
 

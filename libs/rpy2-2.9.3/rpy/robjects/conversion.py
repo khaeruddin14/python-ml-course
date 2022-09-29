@@ -111,7 +111,7 @@ class Converter(object):
 
     def __add__(self, converter):
         assert isinstance(converter, Converter)
-        new_name = '%s + %s' % (self.name, converter.name)
+        new_name = f'{self.name} + {converter.name}'
         # create a copy of `self` as the result converter
         result_converter = Converter(new_name, template=self)
         overlay_converter(converter, result_converter)
